@@ -1,0 +1,33 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="128" height="128" rx="24" fill="url(#gradient)"/>
+
+  <!-- グラデーション定義 -->
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- 本のアイコン -->
+  <g transform="translate(24, 20)">
+    <!-- 本の背景 -->
+    <rect x="0" y="0" width="80" height="88" rx="4" fill="white" opacity="0.95"/>
+
+    <!-- ページの線（横線） -->
+    <line x1="12" y1="20" x2="68" y2="20" stroke="#667eea" stroke-width="2" opacity="0.6"/>
+    <line x1="12" y1="32" x2="68" y2="32" stroke="#667eea" stroke-width="2" opacity="0.6"/>
+    <line x1="12" y1="44" x2="68" y2="44" stroke="#667eea" stroke-width="2" opacity="0.6"/>
+    <line x1="12" y1="56" x2="68" y2="56" stroke="#667eea" stroke-width="2" opacity="0.6"/>
+    <line x1="12" y1="68" x2="68" y2="68" stroke="#667eea" stroke-width="2" opacity="0.6"/>
+
+    <!-- カメラアイコン -->
+    <g transform="translate(50, 50)">
+      <circle cx="0" cy="0" r="18" fill="#764ba2"/>
+      <circle cx="0" cy="0" r="12" fill="none" stroke="white" stroke-width="2.5"/>
+      <circle cx="0" cy="0" r="6" fill="white"/>
+      <rect x="-8" y="-22" width="16" height="6" rx="2" fill="#764ba2"/>
+    </g>
+  </g>
+</svg>

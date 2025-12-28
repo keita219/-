@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kindle Screenshot Tool</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>📚 Kindle Screenshot Tool</h1>
+
+    <!-- ステータス表示エリア -->
+    <div id="status" class="status hidden"></div>
+
+    <!-- 機能1: 現在のページをスクリーンショット -->
+    <div class="section">
+      <h2>📸 現在のページ</h2>
+      <button id="captureCurrentPage" class="btn btn-primary">
+        現在のページを保存
+      </button>
+    </div>
+
+    <!-- 機能2: 指定ページを一括スクリーンショット -->
+    <div class="section">
+      <h2>📋 指定ページ</h2>
+      <input
+        type="text"
+        id="pageRange"
+        placeholder="例: 1-10, 15, 20-30"
+        class="input"
+      />
+      <button id="captureRange" class="btn btn-primary">
+        指定ページを保存
+      </button>
+    </div>
+
+    <!-- 機能3: 全ページをスクリーンショット -->
+    <div class="section">
+      <h2>📖 全ページ</h2>
+      <button id="captureAllPages" class="btn btn-danger">
+        全ページを保存
+      </button>
+      <p class="warning">⚠️ ページ数が多い場合、時間がかかります</p>
+    </div>
+
+    <!-- 進捗表示 -->
+    <div id="progress" class="progress-container hidden">
+      <div class="progress-info">
+        <span id="progressText">進捗: 0/0</span>
+        <span id="progressPercent">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div id="progressFill" class="progress-fill"></div>
+      </div>
+      <button id="cancelCapture" class="btn btn-secondary">キャンセル</button>
+    </div>
+
+    <!-- オプション設定 -->
+    <div class="section">
+      <h2>⚙️ 設定</h2>
+      <label class="checkbox-label">
+        <input type="checkbox" id="convertToPdf" />
+        <span>PNG画像をPDFに変換する</span>
+      </label>
+      <label class="setting-label">
+        <span>ページめくり間隔（ミリ秒）:</span>
+        <input
+          type="number"
+          id="pageDelay"
+          value="1500"
+          min="500"
+          max="5000"
+          step="100"
+          class="input input-small"
+        />
+      </label>
+    </div>
+
+    <!-- フッター -->
+    <div class="footer">
+      <p>v1.0.0 | Kindle Cloud Reader専用</p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
