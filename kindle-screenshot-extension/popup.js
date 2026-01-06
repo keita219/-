@@ -83,6 +83,13 @@ async function handleCaptureCurrentPage() {
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
+    // URLチェック
+    if (!tab.url.includes('read.amazon.com') && !tab.url.includes('read.amazon.co.jp')) {
+      showStatus('❌ Kindle Cloud Readerで本を開いてください', 'error');
+      setButtonsEnabled(true);
+      return;
+    }
+
     // content.jsにメッセージを送信
     const response = await chrome.tabs.sendMessage(tab.id, {
       action: 'captureCurrentPage',
@@ -95,7 +102,12 @@ async function handleCaptureCurrentPage() {
       showStatus('❌ エラー: ' + response.error, 'error');
     }
   } catch (error) {
-    showStatus('❌ エラー: ' + error.message, 'error');
+    // 接続エラーの場合は詳細なメッセージを表示
+    if (error.message.includes('Could not establish connection') || error.message.includes('Receiving end does not exist')) {
+      showStatus('❌ ページを再読み込みしてください（F5キー）', 'error');
+    } else {
+      showStatus('❌ エラー: ' + error.message, 'error');
+    }
   } finally {
     setButtonsEnabled(true);
   }
@@ -126,6 +138,14 @@ async function handleCaptureRange() {
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
+    // URLチェック
+    if (!tab.url.includes('read.amazon.com') && !tab.url.includes('read.amazon.co.jp')) {
+      showStatus('❌ Kindle Cloud Readerで本を開いてください', 'error');
+      setButtonsEnabled(true);
+      showProgress(false);
+      return;
+    }
+
     // content.jsにメッセージを送信
     const response = await chrome.tabs.sendMessage(tab.id, {
       action: 'capturePages',
@@ -139,7 +159,12 @@ async function handleCaptureRange() {
       showStatus('❌ エラー: ' + response.error, 'error');
     }
   } catch (error) {
-    showStatus('❌ エラー: ' + error.message, 'error');
+    // 接続エラーの場合は詳細なメッセージを表示
+    if (error.message.includes('Could not establish connection') || error.message.includes('Receiving end does not exist')) {
+      showStatus('❌ ページを再読み込みしてください（F5キー）', 'error');
+    } else {
+      showStatus('❌ エラー: ' + error.message, 'error');
+    }
   } finally {
     setButtonsEnabled(true);
     showProgress(false);
@@ -160,6 +185,14 @@ async function handleCaptureAllPages() {
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
+    // URLチェック
+    if (!tab.url.includes('read.amazon.com') && !tab.url.includes('read.amazon.co.jp')) {
+      showStatus('❌ Kindle Cloud Readerで本を開いてください', 'error');
+      setButtonsEnabled(true);
+      showProgress(false);
+      return;
+    }
+
     // content.jsにメッセージを送信
     const response = await chrome.tabs.sendMessage(tab.id, {
       action: 'captureAllPages',
@@ -172,7 +205,12 @@ async function handleCaptureAllPages() {
       showStatus('❌ エラー: ' + response.error, 'error');
     }
   } catch (error) {
-    showStatus('❌ エラー: ' + error.message, 'error');
+    // 接続エラーの場合は詳細なメッセージを表示
+    if (error.message.includes('Could not establish connection') || error.message.includes('Receiving end does not exist')) {
+      showStatus('❌ ページを再読み込みしてください（F5キー）', 'error');
+    } else {
+      showStatus('❌ エラー: ' + error.message, 'error');
+    }
   } finally {
     setButtonsEnabled(true);
     showProgress(false);
