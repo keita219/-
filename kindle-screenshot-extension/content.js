@@ -28,7 +28,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
     } catch (error) {
       console.error('Error:', error);
-      const errorMessage = error?.message || String(error) || 'Unknown error occurred';
+      // エラーメッセージを適切に取得
+      let errorMessage = 'Unknown error occurred';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && error.toString && error.toString() !== '[object Object]' && error.toString() !== '[object Event]') {
+        errorMessage = error.toString();
+      }
       sendResponse({ success: false, error: errorMessage });
     }
   })();
@@ -42,30 +50,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // 機能1: 現在のページをキャプチャ
 async function captureCurrentPage(settings) {
-  console.log('Capturing current page...');
+  try {
+    console.log('Capturing current page...');
 
-  // 本文エリアを取得
-  const bookContent = getBookContentElement();
+    // 本文エリアを取得
+    const bookContent = getBookContentElement();
 
-  if (!bookContent) {
-    throw new Error('Kindleの本文エリアが見つかりませんでした。Kindle Cloud Readerで本を開いていますか？');
+    if (!bookContent) {
+      throw new Error('Kindleの本文エリアが見つかりませんでした。Kindle Cloud Readerで本を開いていますか？');
+    }
+
+    console.log('Book content found, capturing element...');
+
+    // スクリーンショットを撮影
+    const screenshot = await captureElement(bookContent);
+
+    console.log('Screenshot captured, saving...');
+
+    // 現在のページ番号を取得（可能であれば）
+    const pageNumber = getCurrentPageNumber() || 'current';
+
+    // 画像を保存
+    await downloadImage(screenshot, `kindle_page_${pageNumber}.png`, settings.saveLocation);
+
+    console.log('Image saved');
+
+    // PDFに変換（オプション）
+    if (settings.convertToPdf) {
+      console.log('Converting to PDF...');
+      await convertToPdf([screenshot], `kindle_page_${pageNumber}.pdf`, settings.saveLocation);
+      console.log('PDF conversion complete');
+    }
+
+    console.log('Capture complete!');
+  } catch (error) {
+    console.error('Error in captureCurrentPage:', error);
+    throw error;
   }
-
-  // スクリーンショットを撮影
-  const screenshot = await captureElement(bookContent);
-
-  // 現在のページ番号を取得（可能であれば）
-  const pageNumber = getCurrentPageNumber() || 'current';
-
-  // 画像を保存
-  await downloadImage(screenshot, `kindle_page_${pageNumber}.png`, settings.saveLocation);
-
-  // PDFに変換（オプション）
-  if (settings.convertToPdf) {
-    await convertToPdf([screenshot], `kindle_page_${pageNumber}.pdf`, settings.saveLocation);
-  }
-
-  console.log('Capture complete!');
 }
 
 // 機能2: 指定ページをキャプチャ
@@ -341,14 +362,22 @@ async function captureElement(element) {
 function loadHtml2Canvas() {
   return new Promise((resolve, reject) => {
     if (window.html2canvas) {
+      console.log('html2canvas already loaded');
       resolve();
       return;
     }
 
+    console.log('Loading html2canvas...');
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-    script.onload = resolve;
-    script.onerror = reject;
+    script.onload = () => {
+      console.log('html2canvas loaded successfully');
+      resolve();
+    };
+    script.onerror = (error) => {
+      console.error('Failed to load html2canvas:', error);
+      reject(new Error('html2canvasライブラリの読み込みに失敗しました。インターネット接続を確認してください。'));
+    };
     document.head.appendChild(script);
   });
 }
@@ -448,14 +477,22 @@ async function convertToPdf(dataUrls, filename, saveLocation) {
 function loadJsPDF() {
   return new Promise((resolve, reject) => {
     if (window.jspdf) {
+      console.log('jsPDF already loaded');
       resolve();
       return;
     }
 
+    console.log('Loading jsPDF...');
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    script.onload = resolve;
-    script.onerror = reject;
+    script.onload = () => {
+      console.log('jsPDF loaded successfully');
+      resolve();
+    };
+    script.onerror = (error) => {
+      console.error('Failed to load jsPDF:', error);
+      reject(new Error('jsPDFライブラリの読み込みに失敗しました。インターネット接続を確認してください。'));
+    };
     document.head.appendChild(script);
   });
 }
