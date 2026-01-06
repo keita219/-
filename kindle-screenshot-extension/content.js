@@ -390,30 +390,29 @@ function loadHtml2Canvas() {
 async function downloadImage(dataUrl, filename, saveLocation) {
   // Data URLをBlobに変換
   const blob = dataURLToBlob(dataUrl);
+  const url = URL.createObjectURL(blob);
 
-  // Chrome Downloads APIを使用して保存先を選択できるようにする
-  if (saveLocation === 'prompt' && chrome.downloads) {
-    // Blobをダウンロード（保存先を選択）
-    const url = URL.createObjectURL(blob);
-
+  // 保存先を選択する場合はbackground scriptを経由
+  if (saveLocation === 'prompt') {
     try {
-      await chrome.downloads.download({
+      // background.jsにメッセージを送信してダウンロード
+      await chrome.runtime.sendMessage({
+        action: 'downloadFile',
         url: url,
         filename: filename,
-        saveAs: true // 保存ダイアログを表示
+        saveAs: true
       });
-      URL.revokeObjectURL(url);
     } catch (error) {
-      console.warn('Chrome Downloads API failed, using fallback:', error);
-      // フォールバック: 通常のダウンロード
+      console.warn('Background download failed, using fallback:', error);
       downloadImageFallback(url, filename);
-      URL.revokeObjectURL(url);
+    } finally {
+      // 少し待ってからURLを解放
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
   } else {
-    // 通常のダウンロード（保存先はブラウザ設定に依存）
-    const url = URL.createObjectURL(blob);
+    // 通常のダウンロード
     downloadImageFallback(url, filename);
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 }
 
@@ -422,7 +421,9 @@ function downloadImageFallback(url, filename) {
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
 }
 
 // PDFに変換してダウンロード
@@ -448,24 +449,24 @@ async function convertToPdf(dataUrls, filename, saveLocation) {
     pdf.addImage(dataUrls[i], 'PNG', 0, 0, pdfWidth, pdfHeight);
   }
 
-  // PDFをBlobとして取得
-  const pdfBlob = pdf.output('blob');
-
-  // Chrome Downloads APIを使用して保存先を選択
-  if (saveLocation === 'prompt' && chrome.downloads) {
+  // 保存先を選択する場合はbackground scriptを経由
+  if (saveLocation === 'prompt') {
+    const pdfBlob = pdf.output('blob');
     const url = URL.createObjectURL(pdfBlob);
 
     try {
-      await chrome.downloads.download({
+      // background.jsにメッセージを送信してダウンロード
+      await chrome.runtime.sendMessage({
+        action: 'downloadFile',
         url: url,
         filename: filename,
-        saveAs: true // 保存ダイアログを表示
+        saveAs: true
       });
-      URL.revokeObjectURL(url);
     } catch (error) {
-      console.warn('Chrome Downloads API failed, using fallback:', error);
-      // フォールバック: 通常の保存
+      console.warn('Background download failed, using fallback:', error);
       pdf.save(filename);
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
   } else {
     // 通常の保存

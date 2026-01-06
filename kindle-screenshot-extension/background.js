@@ -16,6 +16,7 @@ chrome.runtime.onInstalled.addListener((details) => {
     // デフォルト設定を保存
     chrome.storage.local.set({
       convertToPdf: false,
+      promptSaveLocation: false,
       pageDelay: 1500
     });
   } else if (details.reason === 'update') {
@@ -30,11 +31,36 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Background received message:', message);
 
-  // 将来的な拡張機能のために予約
-  // 現在は特に処理なし
+  // ファイルダウンロード処理
+  if (message.action === 'downloadFile') {
+    handleDownloadFile(message, sendResponse);
+    return true; // 非同期レスポンスを有効化
+  }
 
   return true;
 });
+
+// ============================================
+// ファイルダウンロード処理
+// ============================================
+
+async function handleDownloadFile(message, sendResponse) {
+  try {
+    console.log('Downloading file:', message.filename);
+
+    const downloadId = await chrome.downloads.download({
+      url: message.url,
+      filename: message.filename,
+      saveAs: message.saveAs || false
+    });
+
+    console.log('Download started:', downloadId);
+    sendResponse({ success: true, downloadId: downloadId });
+  } catch (error) {
+    console.error('Download failed:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
 
 // ============================================
 // コンテキストメニュー（将来的な拡張機能）
