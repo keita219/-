@@ -17,6 +17,7 @@ const elements = {
   // 入力フィールド
   pageRange: document.getElementById('pageRange'),
   convertToPdf: document.getElementById('convertToPdf'),
+  promptSaveLocation: document.getElementById('promptSaveLocation'),
   pageDelay: document.getElementById('pageDelay'),
 
   // ステータス表示
@@ -51,20 +52,23 @@ document.addEventListener('DOMContentLoaded', () => {
 function saveSettings() {
   chrome.storage.local.set({
     convertToPdf: elements.convertToPdf.checked,
+    promptSaveLocation: elements.promptSaveLocation.checked,
     pageDelay: parseInt(elements.pageDelay.value)
   });
 }
 
 // 設定を読み込み
 function loadSettings() {
-  chrome.storage.local.get(['convertToPdf', 'pageDelay'], (result) => {
+  chrome.storage.local.get(['convertToPdf', 'promptSaveLocation', 'pageDelay'], (result) => {
     elements.convertToPdf.checked = result.convertToPdf || false;
+    elements.promptSaveLocation.checked = result.promptSaveLocation || false;
     elements.pageDelay.value = result.pageDelay || 1500;
   });
 }
 
 // 設定変更時に保存
 elements.convertToPdf.addEventListener('change', saveSettings);
+elements.promptSaveLocation.addEventListener('change', saveSettings);
 elements.pageDelay.addEventListener('change', saveSettings);
 
 // ============================================
@@ -224,6 +228,7 @@ function parsePageRange(rangeStr) {
 function getSettings() {
   return {
     convertToPdf: elements.convertToPdf.checked,
+    saveLocation: elements.promptSaveLocation.checked ? 'prompt' : 'default',
     pageDelay: parseInt(elements.pageDelay.value)
   };
 }
@@ -252,12 +257,25 @@ function showProgress(show) {
 }
 
 // 進捗状況を更新
-function updateProgress(current, total) {
-  const percent = Math.round((current / total) * 100);
-
-  elements.progressText.textContent = `進捗: ${current}/${total}`;
-  elements.progressPercent.textContent = `${percent}%`;
-  elements.progressFill.style.width = `${percent}%`;
+function updateProgress(current, total, percent) {
+  // パーセントが指定されている場合はそれを使用、なければ計算
+  if (percent !== null && percent !== undefined) {
+    elements.progressText.textContent = `進捗: ${current}/${total}`;
+    elements.progressPercent.textContent = `${percent}%`;
+    elements.progressFill.style.width = `${percent}%`;
+  } else if (total && total !== '?') {
+    // 総ページ数が分かる場合
+    const calculatedPercent = Math.round((current / total) * 100);
+    elements.progressText.textContent = `進捗: ${current}/${total}`;
+    elements.progressPercent.textContent = `${calculatedPercent}%`;
+    elements.progressFill.style.width = `${calculatedPercent}%`;
+  } else {
+    // 総ページ数が不明な場合（全ページモード）
+    elements.progressText.textContent = `進捗: ${current}ページ保存中...`;
+    elements.progressPercent.textContent = '';
+    elements.progressFill.style.width = '100%'; // アニメーション表示
+    elements.progressFill.style.animation = 'progress-indeterminate 2s infinite';
+  }
 }
 
 // ボタンの有効/無効を切り替え
@@ -273,7 +291,7 @@ function setButtonsEnabled(enabled) {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'updateProgress') {
-    updateProgress(message.current, message.total);
+    updateProgress(message.current, message.total, message.percent);
   } else if (message.action === 'captureComplete') {
     showStatus('✅ 保存完了！', 'success');
     setButtonsEnabled(true);

@@ -28,7 +28,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
     } catch (error) {
       console.error('Error:', error);
-      sendResponse({ success: false, error: error.message });
+      const errorMessage = error?.message || String(error) || 'Unknown error occurred';
+      sendResponse({ success: false, error: errorMessage });
     }
   })();
 
@@ -57,11 +58,11 @@ async function captureCurrentPage(settings) {
   const pageNumber = getCurrentPageNumber() || 'current';
 
   // 画像を保存
-  await downloadImage(screenshot, `kindle_page_${pageNumber}.png`);
+  await downloadImage(screenshot, `kindle_page_${pageNumber}.png`, settings.saveLocation);
 
   // PDFに変換（オプション）
   if (settings.convertToPdf) {
-    await convertToPdf([screenshot], `kindle_page_${pageNumber}.pdf`);
+    await convertToPdf([screenshot], `kindle_page_${pageNumber}.pdf`, settings.saveLocation);
   }
 
   console.log('Capture complete!');
@@ -71,14 +72,15 @@ async function captureCurrentPage(settings) {
 async function capturePages(pages, settings) {
   console.log('Capturing pages:', pages);
 
-  const screenshots = [];
+  const screenshots = settings.convertToPdf ? [] : null; // PDFに変換する場合のみ配列を使用
   const currentPage = getCurrentPageNumber() || 1;
 
   for (let i = 0; i < pages.length; i++) {
     const targetPage = pages[i];
 
-    // 進捗を通知
-    notifyProgress(i + 1, pages.length);
+    // 進捗を通知（パーセント表示）
+    const percent = Math.round(((i + 1) / pages.length) * 100);
+    notifyProgress(i + 1, pages.length, percent);
 
     // 目的のページに移動
     await navigateToPage(targetPage, currentPage, settings.pageDelay);
@@ -93,11 +95,14 @@ async function capturePages(pages, settings) {
 
     // スクリーンショットを撮影
     const screenshot = await captureElement(bookContent);
-    screenshots.push(screenshot);
 
-    // 個別に保存（PDFに変換しない場合）
-    if (!settings.convertToPdf) {
-      await downloadImage(screenshot, `kindle_page_${targetPage}.png`);
+    // 保存処理
+    if (settings.convertToPdf) {
+      // PDF変換する場合は配列に保存
+      screenshots.push(screenshot);
+    } else {
+      // 即座にダウンロード（メモリ節約）
+      await downloadImage(screenshot, `kindle_page_${targetPage}.png`, settings.saveLocation);
     }
 
     // ページめくり間隔
@@ -107,8 +112,8 @@ async function capturePages(pages, settings) {
   }
 
   // PDFに変換（オプション）
-  if (settings.convertToPdf && screenshots.length > 0) {
-    await convertToPdf(screenshots, `kindle_pages_${pages[0]}-${pages[pages.length - 1]}.pdf`);
+  if (settings.convertToPdf && screenshots && screenshots.length > 0) {
+    await convertToPdf(screenshots, `kindle_pages_${pages[0]}-${pages[pages.length - 1]}.pdf`, settings.saveLocation);
   }
 
   console.log('All pages captured!');
@@ -118,13 +123,13 @@ async function capturePages(pages, settings) {
 async function captureAllPages(settings) {
   console.log('Capturing all pages...');
 
-  const screenshots = [];
+  const screenshots = settings.convertToPdf ? [] : null; // PDFに変換する場合のみ配列を使用
   let pageNumber = 1;
   let hasNextPage = true;
 
   while (hasNextPage) {
-    // 進捗を通知（総ページ数不明なので、現在ページのみ）
-    notifyProgress(pageNumber, '?');
+    // 進捗を通知（総ページ数不明なので、現在ページのみ表示）
+    notifyProgress(pageNumber, null, null);
 
     // 本文エリアを取得
     const bookContent = getBookContentElement();
@@ -136,11 +141,14 @@ async function captureAllPages(settings) {
 
     // スクリーンショットを撮影
     const screenshot = await captureElement(bookContent);
-    screenshots.push(screenshot);
 
-    // 個別に保存（PDFに変換しない場合）
-    if (!settings.convertToPdf) {
-      await downloadImage(screenshot, `kindle_page_${pageNumber}.png`);
+    // 保存処理
+    if (settings.convertToPdf) {
+      // PDF変換する場合は配列に保存
+      screenshots.push(screenshot);
+    } else {
+      // 即座にダウンロード（メモリ節約）
+      await downloadImage(screenshot, `kindle_page_${pageNumber}.png`, settings.saveLocation);
     }
 
     // 次のページへ移動
@@ -153,11 +161,11 @@ async function captureAllPages(settings) {
   }
 
   // PDFに変換（オプション）
-  if (settings.convertToPdf && screenshots.length > 0) {
-    await convertToPdf(screenshots, `kindle_all_pages.pdf`);
+  if (settings.convertToPdf && screenshots && screenshots.length > 0) {
+    await convertToPdf(screenshots, `kindle_all_pages.pdf`, settings.saveLocation);
   }
 
-  console.log(`All ${screenshots.length} pages captured!`);
+  console.log(`All ${pageNumber} pages captured!`);
 }
 
 // ============================================
@@ -350,23 +358,46 @@ function loadHtml2Canvas() {
 // ============================================
 
 // 画像をダウンロード
-async function downloadImage(dataUrl, filename) {
+async function downloadImage(dataUrl, filename, saveLocation) {
   // Data URLをBlobに変換
   const blob = dataURLToBlob(dataUrl);
 
-  // Blobをダウンロード
-  const url = URL.createObjectURL(blob);
+  // Chrome Downloads APIを使用して保存先を選択できるようにする
+  if (saveLocation === 'prompt' && chrome.downloads) {
+    // Blobをダウンロード（保存先を選択）
+    const url = URL.createObjectURL(blob);
 
+    try {
+      await chrome.downloads.download({
+        url: url,
+        filename: filename,
+        saveAs: true // 保存ダイアログを表示
+      });
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.warn('Chrome Downloads API failed, using fallback:', error);
+      // フォールバック: 通常のダウンロード
+      downloadImageFallback(url, filename);
+      URL.revokeObjectURL(url);
+    }
+  } else {
+    // 通常のダウンロード（保存先はブラウザ設定に依存）
+    const url = URL.createObjectURL(blob);
+    downloadImageFallback(url, filename);
+    URL.revokeObjectURL(url);
+  }
+}
+
+// 通常のダウンロード（フォールバック）
+function downloadImageFallback(url, filename) {
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
   a.click();
-
-  URL.revokeObjectURL(url);
 }
 
 // PDFに変換してダウンロード
-async function convertToPdf(dataUrls, filename) {
+async function convertToPdf(dataUrls, filename, saveLocation) {
   // jsPDFライブラリを動的に読み込み
   if (!window.jspdf) {
     await loadJsPDF();
@@ -388,8 +419,29 @@ async function convertToPdf(dataUrls, filename) {
     pdf.addImage(dataUrls[i], 'PNG', 0, 0, pdfWidth, pdfHeight);
   }
 
-  // PDFを保存
-  pdf.save(filename);
+  // PDFをBlobとして取得
+  const pdfBlob = pdf.output('blob');
+
+  // Chrome Downloads APIを使用して保存先を選択
+  if (saveLocation === 'prompt' && chrome.downloads) {
+    const url = URL.createObjectURL(pdfBlob);
+
+    try {
+      await chrome.downloads.download({
+        url: url,
+        filename: filename,
+        saveAs: true // 保存ダイアログを表示
+      });
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.warn('Chrome Downloads API failed, using fallback:', error);
+      // フォールバック: 通常の保存
+      pdf.save(filename);
+    }
+  } else {
+    // 通常の保存
+    pdf.save(filename);
+  }
 }
 
 // jsPDFライブラリを読み込み
@@ -433,10 +485,11 @@ function sleep(ms) {
 }
 
 // 進捗を通知
-function notifyProgress(current, total) {
+function notifyProgress(current, total, percent) {
   chrome.runtime.sendMessage({
     action: 'updateProgress',
     current: current,
-    total: total
+    total: total,
+    percent: percent
   });
 }

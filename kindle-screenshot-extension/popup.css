@@ -254,6 +254,23 @@ h2 {
   }
 }
 
+@keyframes progress-indeterminate {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 .status:not(.hidden) {
   animation: fadeIn 0.3s ease;
+}
+
+.progress-fill[style*="animation"] {
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+  background-size: 200% 100%;
 }
