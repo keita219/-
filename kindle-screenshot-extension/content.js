@@ -340,47 +340,22 @@ async function goToPreviousPage() {
 
 // DOM要素をキャプチャしてBase64画像データURLを返す
 async function captureElement(element) {
-  // html2canvasライブラリを動的に読み込み
-  if (!window.html2canvas) {
-    await loadHtml2Canvas();
+  // background.jsにスクリーンショット要求を送信
+  console.log('Requesting screenshot from background...');
+
+  const response = await chrome.runtime.sendMessage({
+    action: 'captureScreenshot'
+  });
+
+  if (response.success) {
+    console.log('Screenshot captured successfully');
+    return response.dataUrl;
+  } else {
+    throw new Error(response.error || 'スクリーンショットの撮影に失敗しました');
   }
-
-  // 要素をCanvasに変換
-  const canvas = await html2canvas(element, {
-    useCORS: true,
-    allowTaint: true,
-    backgroundColor: '#ffffff',
-    scale: 2, // 高解像度
-    logging: false
-  });
-
-  // CanvasをBase64 PNG画像に変換
-  return canvas.toDataURL('image/png');
 }
 
-// html2canvasライブラリを読み込み
-function loadHtml2Canvas() {
-  return new Promise((resolve, reject) => {
-    if (window.html2canvas) {
-      console.log('html2canvas already loaded');
-      resolve();
-      return;
-    }
-
-    console.log('Loading html2canvas...');
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-    script.onload = () => {
-      console.log('html2canvas loaded successfully');
-      resolve();
-    };
-    script.onerror = (error) => {
-      console.error('Failed to load html2canvas:', error);
-      reject(new Error('html2canvasライブラリの読み込みに失敗しました。インターネット接続を確認してください。'));
-    };
-    document.head.appendChild(script);
-  });
-}
+// html2canvasは使用しないため削除（Chrome APIを使用）
 
 // ============================================
 // ファイル保存

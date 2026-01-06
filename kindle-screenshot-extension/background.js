@@ -37,8 +37,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // 非同期レスポンスを有効化
   }
 
+  // スクリーンショット処理
+  if (message.action === 'captureScreenshot') {
+    handleCaptureScreenshot(sender, sendResponse);
+    return true; // 非同期レスポンスを有効化
+  }
+
   return true;
 });
+
+// ============================================
+// スクリーンショット処理
+// ============================================
+
+async function handleCaptureScreenshot(sender, sendResponse) {
+  try {
+    console.log('Capturing screenshot for tab:', sender.tab.id);
+
+    // タブのスクリーンショットを撮影
+    const dataUrl = await chrome.tabs.captureVisibleTab(sender.tab.windowId, {
+      format: 'png'
+    });
+
+    console.log('Screenshot captured successfully');
+    sendResponse({ success: true, dataUrl: dataUrl });
+  } catch (error) {
+    console.error('Screenshot failed:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
 
 // ============================================
 // ファイルダウンロード処理
