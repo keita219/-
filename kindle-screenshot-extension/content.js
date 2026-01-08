@@ -96,6 +96,9 @@ async function capturePages(pages, settings) {
   const screenshots = settings.convertToPdf ? [] : null; // PDFに変換する場合のみ配列を使用
   const currentPage = getCurrentPageNumber() || 1;
 
+  // 保存先選択は最初の1回のみ
+  let isFirstFile = settings.saveLocation === 'prompt';
+
   for (let i = 0; i < pages.length; i++) {
     const targetPage = pages[i];
 
@@ -123,7 +126,10 @@ async function capturePages(pages, settings) {
       screenshots.push(screenshot);
     } else {
       // 即座にダウンロード（メモリ節約）
-      await downloadImage(screenshot, `kindle_page_${targetPage}.png`, settings.saveLocation);
+      // 最初のファイルだけsaveLocation、2ファイル目以降はdefault
+      const saveMode = isFirstFile ? settings.saveLocation : 'default';
+      await downloadImage(screenshot, `kindle_page_${targetPage}.png`, saveMode);
+      isFirstFile = false; // 2ファイル目以降はdefaultに
     }
 
     // ページめくり間隔
@@ -148,6 +154,9 @@ async function captureAllPages(settings) {
   let pageNumber = 1;
   let hasNextPage = true;
 
+  // 保存先選択は最初の1回のみ
+  let isFirstFile = settings.saveLocation === 'prompt';
+
   while (hasNextPage) {
     // 進捗を通知（総ページ数不明なので、現在ページのみ表示）
     notifyProgress(pageNumber, null, null);
@@ -169,7 +178,10 @@ async function captureAllPages(settings) {
       screenshots.push(screenshot);
     } else {
       // 即座にダウンロード（メモリ節約）
-      await downloadImage(screenshot, `kindle_page_${pageNumber}.png`, settings.saveLocation);
+      // 最初のファイルだけsaveLocation、2ファイル目以降はdefault
+      const saveMode = isFirstFile ? settings.saveLocation : 'default';
+      await downloadImage(screenshot, `kindle_page_${pageNumber}.png`, saveMode);
+      isFirstFile = false; // 2ファイル目以降はdefaultに
     }
 
     // 次のページへ移動

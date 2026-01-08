@@ -22,10 +22,7 @@ const elements = {
 
   // ステータス表示
   status: document.getElementById('status'),
-  progress: document.getElementById('progress'),
-  progressText: document.getElementById('progressText'),
-  progressPercent: document.getElementById('progressPercent'),
-  progressFill: document.getElementById('progressFill')
+  progress: document.getElementById('progress')
 };
 
 // ============================================
@@ -131,9 +128,8 @@ async function handleCaptureRange() {
       return;
     }
 
-    showStatus(`${pages.length}ページを保存中...`, 'info');
+    showStatus('保存準備中...', 'info');
     setButtonsEnabled(false);
-    showProgress(true);
     isCancelled = false;
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -142,7 +138,6 @@ async function handleCaptureRange() {
     if (!tab.url.includes('read.amazon.com') && !tab.url.includes('read.amazon.co.jp')) {
       showStatus('❌ Kindle Cloud Readerで本を開いてください', 'error');
       setButtonsEnabled(true);
-      showProgress(false);
       return;
     }
 
@@ -167,7 +162,6 @@ async function handleCaptureRange() {
     }
   } finally {
     setButtonsEnabled(true);
-    showProgress(false);
   }
 }
 
@@ -178,9 +172,8 @@ async function handleCaptureAllPages() {
 
     if (!confirmed) return;
 
-    showStatus('全ページを保存中...', 'info');
+    showStatus('保存準備中...', 'info');
     setButtonsEnabled(false);
-    showProgress(true);
     isCancelled = false;
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -189,7 +182,6 @@ async function handleCaptureAllPages() {
     if (!tab.url.includes('read.amazon.com') && !tab.url.includes('read.amazon.co.jp')) {
       showStatus('❌ Kindle Cloud Readerで本を開いてください', 'error');
       setButtonsEnabled(true);
-      showProgress(false);
       return;
     }
 
@@ -213,7 +205,6 @@ async function handleCaptureAllPages() {
     }
   } finally {
     setButtonsEnabled(true);
-    showProgress(false);
   }
 }
 
@@ -285,34 +276,14 @@ function showStatus(message, type = 'info') {
   }
 }
 
-// 進捗バーの表示/非表示
-function showProgress(show) {
-  if (show) {
-    elements.progress.classList.remove('hidden');
-  } else {
-    elements.progress.classList.add('hidden');
-  }
-}
-
-// 進捗状況を更新
+// 進捗状況を更新（ステータスエリアに統合表示）
 function updateProgress(current, total, percent) {
-  // パーセントが指定されている場合はそれを使用、なければ計算
-  if (percent !== null && percent !== undefined) {
-    elements.progressText.textContent = `進捗: ${current}/${total}`;
-    elements.progressPercent.textContent = `${percent}%`;
-    elements.progressFill.style.width = `${percent}%`;
-  } else if (total && total !== '?') {
-    // 総ページ数が分かる場合
-    const calculatedPercent = Math.round((current / total) * 100);
-    elements.progressText.textContent = `進捗: ${current}/${total}`;
-    elements.progressPercent.textContent = `${calculatedPercent}%`;
-    elements.progressFill.style.width = `${calculatedPercent}%`;
+  if (total && total !== null) {
+    // 総ページ数が分かる場合: 「保存中（1/100）」
+    showStatus(`保存中（${current}/${total}）`, 'info');
   } else {
-    // 総ページ数が不明な場合（全ページモード）
-    elements.progressText.textContent = `進捗: ${current}ページ保存中...`;
-    elements.progressPercent.textContent = '';
-    elements.progressFill.style.width = '100%'; // アニメーション表示
-    elements.progressFill.style.animation = 'progress-indeterminate 2s infinite';
+    // 総ページ数が不明な場合: 「保存中（50ページ）」
+    showStatus(`保存中（${current}ページ）`, 'info');
   }
 }
 
