@@ -71,14 +71,14 @@ async function captureCurrentPage(settings) {
     const pageNumber = getCurrentPageNumber() || 'current';
 
     // 画像を保存
-    await downloadImage(screenshot, `kindle_page_${pageNumber}.png`, settings.saveLocation);
+    await downloadImage(screenshot, `kindle_page_${pageNumber}.png`, settings.saveFolderName);
 
     console.log('Image saved');
 
     // PDFに変換（オプション）
     if (settings.convertToPdf) {
       console.log('Converting to PDF...');
-      await convertToPdf([screenshot], `kindle_page_${pageNumber}.pdf`, settings.saveLocation);
+      await convertToPdf([screenshot], `kindle_page_${pageNumber}.pdf`, settings.saveFolderName);
       console.log('PDF conversion complete');
     }
 
@@ -95,9 +95,6 @@ async function capturePages(pages, settings) {
 
   const screenshots = settings.convertToPdf ? [] : null; // PDFに変換する場合のみ配列を使用
   const currentPage = getCurrentPageNumber() || 1;
-
-  // 保存先選択は最初の1回のみ
-  let isFirstFile = settings.saveLocation === 'prompt';
 
   for (let i = 0; i < pages.length; i++) {
     const targetPage = pages[i];
@@ -126,10 +123,7 @@ async function capturePages(pages, settings) {
       screenshots.push(screenshot);
     } else {
       // 即座にダウンロード（メモリ節約）
-      // 最初のファイルだけsaveLocation、2ファイル目以降はdefault
-      const saveMode = isFirstFile ? settings.saveLocation : 'default';
-      await downloadImage(screenshot, `kindle_page_${targetPage}.png`, saveMode);
-      isFirstFile = false; // 2ファイル目以降はdefaultに
+      await downloadImage(screenshot, `kindle_page_${targetPage}.png`, settings.saveFolderName);
     }
 
     // ページめくり間隔
@@ -140,7 +134,7 @@ async function capturePages(pages, settings) {
 
   // PDFに変換（オプション）
   if (settings.convertToPdf && screenshots && screenshots.length > 0) {
-    await convertToPdf(screenshots, `kindle_pages_${pages[0]}-${pages[pages.length - 1]}.pdf`, settings.saveLocation);
+    await convertToPdf(screenshots, `kindle_pages_${pages[0]}-${pages[pages.length - 1]}.pdf`, settings.saveFolderName);
   }
 
   console.log('All pages captured!');
@@ -153,9 +147,6 @@ async function captureAllPages(settings) {
   const screenshots = settings.convertToPdf ? [] : null; // PDFに変換する場合のみ配列を使用
   let pageNumber = 1;
   let hasNextPage = true;
-
-  // 保存先選択は最初の1回のみ
-  let isFirstFile = settings.saveLocation === 'prompt';
 
   while (hasNextPage) {
     // 進捗を通知（総ページ数不明なので、現在ページのみ表示）
@@ -178,10 +169,7 @@ async function captureAllPages(settings) {
       screenshots.push(screenshot);
     } else {
       // 即座にダウンロード（メモリ節約）
-      // 最初のファイルだけsaveLocation、2ファイル目以降はdefault
-      const saveMode = isFirstFile ? settings.saveLocation : 'default';
-      await downloadImage(screenshot, `kindle_page_${pageNumber}.png`, saveMode);
-      isFirstFile = false; // 2ファイル目以降はdefaultに
+      await downloadImage(screenshot, `kindle_page_${pageNumber}.png`, settings.saveFolderName);
     }
 
     // 次のページへ移動
@@ -195,7 +183,7 @@ async function captureAllPages(settings) {
 
   // PDFに変換（オプション）
   if (settings.convertToPdf && screenshots && screenshots.length > 0) {
-    await convertToPdf(screenshots, `kindle_all_pages.pdf`, settings.saveLocation);
+    await convertToPdf(screenshots, `kindle_all_pages.pdf`, settings.saveFolderName);
   }
 
   console.log(`All ${pageNumber} pages captured!`);
@@ -374,47 +362,31 @@ async function captureElement(element) {
 // ============================================
 
 // 画像をダウンロード
-async function downloadImage(dataUrl, filename, saveLocation) {
+async function downloadImage(dataUrl, filename, folderName) {
   // Data URLをBlobに変換
   const blob = dataURLToBlob(dataUrl);
   const url = URL.createObjectURL(blob);
 
-  // 保存先を選択する場合はbackground scriptを経由
-  if (saveLocation === 'prompt') {
-    try {
-      // background.jsにメッセージを送信してダウンロード
-      await chrome.runtime.sendMessage({
-        action: 'downloadFile',
-        url: url,
-        filename: filename,
-        saveAs: true
-      });
-    } catch (error) {
-      console.warn('Background download failed, using fallback:', error);
-      downloadImageFallback(url, filename);
-    } finally {
-      // 少し待ってからURLを解放
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }
-  } else {
-    // 通常のダウンロード
-    downloadImageFallback(url, filename);
+  try {
+    // background.jsにメッセージを送信してダウンロード
+    await chrome.runtime.sendMessage({
+      action: 'downloadFile',
+      url: url,
+      filename: filename,
+      folderName: folderName,
+      saveAs: false
+    });
+  } catch (error) {
+    console.error('Download failed:', error);
+    throw error;
+  } finally {
+    // 少し待ってからURLを解放
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 }
 
-// 通常のダウンロード（フォールバック）
-function downloadImageFallback(url, filename) {
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
 // PDFに変換してダウンロード
-async function convertToPdf(dataUrls, filename, saveLocation) {
+async function convertToPdf(dataUrls, filename, folderName) {
   // jsPDFライブラリを動的に読み込み
   if (!window.jspdf) {
     await loadJsPDF();
@@ -436,28 +408,23 @@ async function convertToPdf(dataUrls, filename, saveLocation) {
     pdf.addImage(dataUrls[i], 'PNG', 0, 0, pdfWidth, pdfHeight);
   }
 
-  // 保存先を選択する場合はbackground scriptを経由
-  if (saveLocation === 'prompt') {
-    const pdfBlob = pdf.output('blob');
-    const url = URL.createObjectURL(pdfBlob);
+  const pdfBlob = pdf.output('blob');
+  const url = URL.createObjectURL(pdfBlob);
 
-    try {
-      // background.jsにメッセージを送信してダウンロード
-      await chrome.runtime.sendMessage({
-        action: 'downloadFile',
-        url: url,
-        filename: filename,
-        saveAs: true
-      });
-    } catch (error) {
-      console.warn('Background download failed, using fallback:', error);
-      pdf.save(filename);
-    } finally {
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }
-  } else {
-    // 通常の保存
-    pdf.save(filename);
+  try {
+    // background.jsにメッセージを送信してダウンロード
+    await chrome.runtime.sendMessage({
+      action: 'downloadFile',
+      url: url,
+      filename: filename,
+      folderName: folderName,
+      saveAs: false
+    });
+  } catch (error) {
+    console.error('PDF download failed:', error);
+    throw error;
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 }
 

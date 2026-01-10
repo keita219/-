@@ -17,7 +17,7 @@ const elements = {
   // 入力フィールド
   pageRange: document.getElementById('pageRange'),
   convertToPdf: document.getElementById('convertToPdf'),
-  promptSaveLocation: document.getElementById('promptSaveLocation'),
+  saveFolderName: document.getElementById('saveFolderName'),
   pageDelay: document.getElementById('pageDelay'),
 
   // ステータス表示
@@ -49,23 +49,23 @@ document.addEventListener('DOMContentLoaded', () => {
 function saveSettings() {
   chrome.storage.local.set({
     convertToPdf: elements.convertToPdf.checked,
-    promptSaveLocation: elements.promptSaveLocation.checked,
+    saveFolderName: elements.saveFolderName.value.trim(),
     pageDelay: parseInt(elements.pageDelay.value)
   });
 }
 
 // 設定を読み込み
 function loadSettings() {
-  chrome.storage.local.get(['convertToPdf', 'promptSaveLocation', 'pageDelay'], (result) => {
+  chrome.storage.local.get(['convertToPdf', 'saveFolderName', 'pageDelay'], (result) => {
     elements.convertToPdf.checked = result.convertToPdf || false;
-    elements.promptSaveLocation.checked = result.promptSaveLocation || false;
+    elements.saveFolderName.value = result.saveFolderName || '';
     elements.pageDelay.value = result.pageDelay || 1500;
   });
 }
 
 // 設定変更時に保存
 elements.convertToPdf.addEventListener('change', saveSettings);
-elements.promptSaveLocation.addEventListener('change', saveSettings);
+elements.saveFolderName.addEventListener('input', saveSettings);
 elements.pageDelay.addEventListener('change', saveSettings);
 
 // ============================================
@@ -257,7 +257,7 @@ function parsePageRange(rangeStr) {
 function getSettings() {
   return {
     convertToPdf: elements.convertToPdf.checked,
-    saveLocation: elements.promptSaveLocation.checked ? 'prompt' : 'default',
+    saveFolderName: elements.saveFolderName.value.trim(),
     pageDelay: parseInt(elements.pageDelay.value)
   };
 }

@@ -75,9 +75,15 @@ async function handleDownloadFile(message, sendResponse) {
   try {
     console.log('Downloading file:', message.filename);
 
+    // フォルダ名が指定されている場合は、ファイル名の前に追加
+    let filename = message.filename;
+    if (message.folderName && message.folderName.trim() !== '') {
+      filename = `${message.folderName.trim()}/${message.filename}`;
+    }
+
     const downloadId = await chrome.downloads.download({
       url: message.url,
-      filename: message.filename,
+      filename: filename,
       saveAs: message.saveAs || false
     });
 
