@@ -19,15 +19,15 @@
       <button id="captureCurrentPage" class="btn btn-primary btn-compact">
         現在のページ
       </button>
+      <button id="captureRange" class="btn btn-primary btn-compact">
+        指定ページ
+      </button>
       <input
         type="text"
         id="pageRange"
         placeholder="例: 1-10, 15, 20-30"
         class="input input-compact"
       />
-      <button id="captureRange" class="btn btn-primary btn-compact">
-        指定ページ
-      </button>
       <button id="captureAllPages" class="btn btn-danger btn-compact">
         全ページ
       </button>
@@ -42,22 +42,17 @@
     <!-- オプション設定 -->
     <div class="section">
       <h2>⚙️ 設定</h2>
-      <label class="checkbox-label">
-        <input type="checkbox" id="convertToPdf" />
-        <span>PDFに変換</span>
-      </label>
-      <label class="setting-label">
-        <span>保存フォルダ:</span>
+      <label class="setting-label-block">
+        <span>保存フォルダ</span>
         <input
           type="text"
           id="saveFolderName"
-          placeholder="例: my-kindle-book"
-          class="input input-folder"
+          placeholder="保存先のフォルダ名"
+          class="input input-compact"
         />
       </label>
-      <p class="info-text">📁 Downloads内にサブフォルダを作成</p>
-      <label class="setting-label">
-        <span>めくり間隔(ms):</span>
+      <label class="setting-label-block">
+        <span>めくり間隔(ms)</span>
         <input
           type="number"
           id="pageDelay"
@@ -65,8 +60,12 @@
           min="500"
           max="5000"
           step="100"
-          class="input input-small"
+          class="input input-compact"
         />
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="convertToPdf" />
+        <span>PDFに変換</span>
       </label>
     </div>
 

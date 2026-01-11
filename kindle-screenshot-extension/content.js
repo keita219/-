@@ -67,18 +67,21 @@ async function captureCurrentPage(settings) {
 
     console.log('Screenshot captured, saving...');
 
-    // 現在のページ番号を取得（可能であれば）
+    // 書籍名とページ番号を取得
+    const bookTitle = getBookTitle();
     const pageNumber = getCurrentPageNumber() || 'current';
+    const filename = `[${bookTitle}][${pageNumber}].png`;
 
     // 画像を保存
-    await downloadImage(screenshot, `kindle_page_${pageNumber}.png`, settings.saveFolderName);
+    await downloadImage(screenshot, filename, settings.saveFolderName);
 
     console.log('Image saved');
 
     // PDFに変換（オプション）
     if (settings.convertToPdf) {
       console.log('Converting to PDF...');
-      await convertToPdf([screenshot], `kindle_page_${pageNumber}.pdf`, settings.saveFolderName);
+      const pdfFilename = `[${bookTitle}][${pageNumber}].pdf`;
+      await convertToPdf([screenshot], pdfFilename, settings.saveFolderName);
       console.log('PDF conversion complete');
     }
 
@@ -95,6 +98,7 @@ async function capturePages(pages, settings) {
 
   const screenshots = settings.convertToPdf ? [] : null; // PDFに変換する場合のみ配列を使用
   const currentPage = getCurrentPageNumber() || 1;
+  const bookTitle = getBookTitle();
 
   for (let i = 0; i < pages.length; i++) {
     const targetPage = pages[i];
@@ -123,7 +127,8 @@ async function capturePages(pages, settings) {
       screenshots.push(screenshot);
     } else {
       // 即座にダウンロード（メモリ節約）
-      await downloadImage(screenshot, `kindle_page_${targetPage}.png`, settings.saveFolderName);
+      const filename = `[${bookTitle}][${targetPage}].png`;
+      await downloadImage(screenshot, filename, settings.saveFolderName);
     }
 
     // ページめくり間隔
@@ -134,7 +139,8 @@ async function capturePages(pages, settings) {
 
   // PDFに変換（オプション）
   if (settings.convertToPdf && screenshots && screenshots.length > 0) {
-    await convertToPdf(screenshots, `kindle_pages_${pages[0]}-${pages[pages.length - 1]}.pdf`, settings.saveFolderName);
+    const pdfFilename = `[${bookTitle}][${pages[0]}-${pages[pages.length - 1]}].pdf`;
+    await convertToPdf(screenshots, pdfFilename, settings.saveFolderName);
   }
 
   console.log('All pages captured!');
@@ -147,6 +153,7 @@ async function captureAllPages(settings) {
   const screenshots = settings.convertToPdf ? [] : null; // PDFに変換する場合のみ配列を使用
   let pageNumber = 1;
   let hasNextPage = true;
+  const bookTitle = getBookTitle();
 
   while (hasNextPage) {
     // 進捗を通知（総ページ数不明なので、現在ページのみ表示）
@@ -169,7 +176,8 @@ async function captureAllPages(settings) {
       screenshots.push(screenshot);
     } else {
       // 即座にダウンロード（メモリ節約）
-      await downloadImage(screenshot, `kindle_page_${pageNumber}.png`, settings.saveFolderName);
+      const filename = `[${bookTitle}][${pageNumber}].png`;
+      await downloadImage(screenshot, filename, settings.saveFolderName);
     }
 
     // 次のページへ移動
@@ -183,7 +191,8 @@ async function captureAllPages(settings) {
 
   // PDFに変換（オプション）
   if (settings.convertToPdf && screenshots && screenshots.length > 0) {
-    await convertToPdf(screenshots, `kindle_all_pages.pdf`, settings.saveFolderName);
+    const pdfFilename = `[${bookTitle}][all_pages].pdf`;
+    await convertToPdf(screenshots, pdfFilename, settings.saveFolderName);
   }
 
   console.log(`All ${pageNumber} pages captured!`);
@@ -226,6 +235,43 @@ function getBookContentElement() {
   // セレクタで見つからない場合は、可視エリア全体を返す
   console.warn('Book content element not found, using document body');
   return document.body;
+}
+
+// Kindle書籍名を取得
+function getBookTitle() {
+  // Kindle Cloud Readerのタイトル要素を取得
+  const selectors = [
+    '#kindleReader_header_title', // ヘッダータイトル
+    '.book-title', // 書籍タイトル
+    '[id*="title"]', // ID内にtitleを含む要素
+    'h1', // h1要素
+    'title' // ページタイトル
+  ];
+
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+
+    if (element && element.textContent.trim()) {
+      let title = element.textContent.trim();
+
+      // ページタイトルから書籍名を抽出（"書籍名 - Kindle Cloud Reader"形式）
+      if (selector === 'title') {
+        const match = title.match(/^(.+?)\s*[-–—]\s*Kindle/);
+        if (match) {
+          title = match[1].trim();
+        }
+      }
+
+      // ファイル名に使用できない文字を除去
+      title = title.replace(/[<>:"/\\|?*]/g, '');
+
+      console.log('[content.js] Book title found:', title);
+      return title;
+    }
+  }
+
+  console.warn('[content.js] Book title not found, using default');
+  return 'kindle_book';
 }
 
 // 現在のページ番号を取得

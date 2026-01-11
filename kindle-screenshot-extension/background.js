@@ -77,14 +77,14 @@ async function handleDownloadFile(message, sendResponse) {
     console.log('[background.js] Folder name:', message.folderName);
     console.log('[background.js] saveAs:', message.saveAs);
 
-    // フォルダ名が指定されている場合は、ファイル名の前に追加
-    let filename = message.filename;
-    if (message.folderName && message.folderName.trim() !== '') {
-      filename = `${message.folderName.trim()}/${message.filename}`;
-      console.log('[background.js] Full path with folder:', filename);
-    } else {
-      console.log('[background.js] No folder name specified, using filename only');
-    }
+    // 必ずサブフォルダを作成する
+    // フォルダ名が指定されていない場合はデフォルトで「kindle」を使用
+    let folderName = message.folderName && message.folderName.trim() !== ''
+      ? message.folderName.trim()
+      : 'kindle';
+
+    const filename = `${folderName}/${message.filename}`;
+    console.log('[background.js] Full path with folder:', filename);
 
     const downloadId = await chrome.downloads.download({
       url: message.url,
