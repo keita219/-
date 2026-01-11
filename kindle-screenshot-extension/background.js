@@ -16,11 +16,14 @@ chrome.runtime.onInstalled.addListener((details) => {
     // デフォルト設定を保存
     chrome.storage.local.set({
       convertToPdf: false,
-      promptSaveLocation: false,
+      saveFolderName: '',
       pageDelay: 1500
     });
   } else if (details.reason === 'update') {
     console.log('Extension updated to version', chrome.runtime.getManifest().version);
+
+    // 古い設定を削除して新しい設定に移行
+    chrome.storage.local.remove('promptSaveLocation');
   }
 });
 
@@ -73,9 +76,10 @@ async function handleCaptureScreenshot(sender, sendResponse) {
 
 async function handleDownloadFile(message, sendResponse) {
   try {
-    console.log('[background.js] Downloading file:', message.filename);
-    console.log('[background.js] Folder name:', message.folderName);
-    console.log('[background.js] saveAs:', message.saveAs);
+    console.log('=== [background.js] handleDownloadFile START ===');
+    console.log('[background.js] Received filename:', message.filename);
+    console.log('[background.js] Received folderName:', message.folderName);
+    console.log('[background.js] Received saveAs:', message.saveAs);
 
     // 必ずサブフォルダを作成する
     // フォルダ名が指定されていない場合はデフォルトで「kindle」を使用
@@ -83,19 +87,27 @@ async function handleDownloadFile(message, sendResponse) {
       ? message.folderName.trim()
       : 'kindle';
 
-    const filename = `${folderName}/${message.filename}`;
-    console.log('[background.js] Full path with folder:', filename);
+    console.log('[background.js] Using folder name:', folderName);
 
-    const downloadId = await chrome.downloads.download({
+    const filename = `${folderName}/${message.filename}`;
+    console.log('[background.js] Final download path:', filename);
+
+    const downloadOptions = {
       url: message.url,
       filename: filename,
       saveAs: message.saveAs || false
-    });
+    };
+    console.log('[background.js] Download options:', downloadOptions);
 
-    console.log('[background.js] Download started with ID:', downloadId);
+    const downloadId = await chrome.downloads.download(downloadOptions);
+
+    console.log('[background.js] Download started successfully with ID:', downloadId);
+    console.log('=== [background.js] handleDownloadFile SUCCESS ===');
     sendResponse({ success: true, downloadId: downloadId });
   } catch (error) {
-    console.error('[background.js] Download failed:', error);
+    console.error('[background.js] Download failed with error:', error);
+    console.error('[background.js] Error details:', error.message, error.stack);
+    console.log('=== [background.js] handleDownloadFile FAILED ===');
     sendResponse({ success: false, error: error.message });
   }
 }

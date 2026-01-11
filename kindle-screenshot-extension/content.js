@@ -239,38 +239,57 @@ function getBookContentElement() {
 
 // Kindle書籍名を取得
 function getBookTitle() {
+  console.log('[content.js] getBookTitle() called');
+
   // Kindle Cloud Readerのタイトル要素を取得
   const selectors = [
+    'title', // ページタイトル（最優先）
     '#kindleReader_header_title', // ヘッダータイトル
     '.book-title', // 書籍タイトル
     '[id*="title"]', // ID内にtitleを含む要素
     'h1', // h1要素
-    'title' // ページタイトル
+    'header h1', // ヘッダー内のh1
+    '[class*="title"]' // クラス内にtitleを含む要素
   ];
 
   for (const selector of selectors) {
-    const element = document.querySelector(selector);
+    try {
+      const element = document.querySelector(selector);
+      console.log(`[content.js] Trying selector "${selector}":`, element ? element.textContent.substring(0, 50) : 'not found');
 
-    if (element && element.textContent.trim()) {
-      let title = element.textContent.trim();
+      if (element && element.textContent.trim()) {
+        let title = element.textContent.trim();
 
-      // ページタイトルから書籍名を抽出（"書籍名 - Kindle Cloud Reader"形式）
-      if (selector === 'title') {
-        const match = title.match(/^(.+?)\s*[-–—]\s*Kindle/);
-        if (match) {
-          title = match[1].trim();
+        // ページタイトルから書籍名を抽出（"書籍名 - Kindle Cloud Reader"形式）
+        if (selector === 'title') {
+          // パターン1: "書籍名 - Kindle Cloud Reader"
+          let match = title.match(/^(.+?)\s*[-–—]\s*Kindle/i);
+          if (match) {
+            title = match[1].trim();
+          } else {
+            // パターン2: "Kindle Cloud Reader - 書籍名"
+            match = title.match(/Kindle.*?[-–—]\s*(.+)$/i);
+            if (match) {
+              title = match[1].trim();
+            }
+          }
+        }
+
+        // ファイル名に使用できない文字を除去
+        title = title.replace(/[<>:"/\\|?*]/g, '').trim();
+
+        // 有効なタイトルが取得できた場合
+        if (title && title.length > 0 && title !== 'Kindle Cloud Reader') {
+          console.log('[content.js] Book title found:', title);
+          return title;
         }
       }
-
-      // ファイル名に使用できない文字を除去
-      title = title.replace(/[<>:"/\\|?*]/g, '');
-
-      console.log('[content.js] Book title found:', title);
-      return title;
+    } catch (error) {
+      console.warn(`[content.js] Error with selector "${selector}":`, error);
     }
   }
 
-  console.warn('[content.js] Book title not found, using default');
+  console.warn('[content.js] Book title not found, using default "kindle_book"');
   return 'kindle_book';
 }
 
