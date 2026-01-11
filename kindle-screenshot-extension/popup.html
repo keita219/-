@@ -8,40 +8,30 @@
 </head>
 <body>
   <div class="container">
-    <h1>📚 Kindle Screenshot Tool</h1>
+    <h1>📚 Kindle Screenshot</h1>
 
     <!-- ステータス表示エリア -->
     <div id="status" class="status hidden"></div>
 
-    <!-- 機能1: 現在のページをスクリーンショット -->
+    <!-- キャプチャ機能 -->
     <div class="section">
-      <h2>📸 現在のページ</h2>
-      <button id="captureCurrentPage" class="btn btn-primary">
-        現在のページを保存
+      <h2>📸 キャプチャ</h2>
+      <button id="captureCurrentPage" class="btn btn-primary btn-compact">
+        現在のページ
       </button>
-    </div>
-
-    <!-- 機能2: 指定ページを一括スクリーンショット -->
-    <div class="section">
-      <h2>📋 指定ページ</h2>
       <input
         type="text"
         id="pageRange"
         placeholder="例: 1-10, 15, 20-30"
-        class="input"
+        class="input input-compact"
       />
-      <button id="captureRange" class="btn btn-primary">
-        指定ページを保存
+      <button id="captureRange" class="btn btn-primary btn-compact">
+        指定ページ
       </button>
-    </div>
-
-    <!-- 機能3: 全ページをスクリーンショット -->
-    <div class="section">
-      <h2>📖 全ページ</h2>
-      <button id="captureAllPages" class="btn btn-danger">
-        全ページを保存
+      <button id="captureAllPages" class="btn btn-danger btn-compact">
+        全ページ
       </button>
-      <p class="warning">⚠️ ページ数が多い場合、時間がかかります</p>
+      <p class="warning">⚠️ 全ページは時間がかかる場合があります</p>
     </div>
 
     <!-- 進捗表示（キャンセルボタンのみ） -->
@@ -54,10 +44,10 @@
       <h2>⚙️ 設定</h2>
       <label class="checkbox-label">
         <input type="checkbox" id="convertToPdf" />
-        <span>PNG画像をPDFに変換する</span>
+        <span>PDFに変換</span>
       </label>
       <label class="setting-label">
-        <span>保存フォルダ名:</span>
+        <span>保存フォルダ:</span>
         <input
           type="text"
           id="saveFolderName"
@@ -65,9 +55,9 @@
           class="input input-folder"
         />
       </label>
-      <p class="info-text">📁 ダウンロードフォルダ内にサブフォルダを作成します</p>
+      <p class="info-text">📁 Downloads内にサブフォルダを作成</p>
       <label class="setting-label">
-        <span>ページめくり間隔（ミリ秒）:</span>
+        <span>めくり間隔(ms):</span>
         <input
           type="number"
           id="pageDelay"
@@ -82,7 +72,7 @@
 
     <!-- フッター -->
     <div class="footer">
-      <p>v1.0.0 | Kindle Cloud Reader専用</p>
+      <p>v1.0 | Kindle Cloud Reader</p>
     </div>
   </div>
 
