@@ -255,11 +255,13 @@ function parsePageRange(rangeStr) {
 
 // 現在の設定を取得
 function getSettings() {
-  return {
+  const settings = {
     convertToPdf: elements.convertToPdf.checked,
     saveFolderName: elements.saveFolderName.value.trim(),
     pageDelay: parseInt(elements.pageDelay.value)
   };
+  console.log('[popup.js] Settings:', settings);
+  return settings;
 }
 
 // ステータスメッセージを表示

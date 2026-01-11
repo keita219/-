@@ -363,6 +363,8 @@ async function captureElement(element) {
 
 // 画像をダウンロード
 async function downloadImage(dataUrl, filename, folderName) {
+  console.log('[content.js] downloadImage called with folderName:', folderName, 'filename:', filename);
+
   // Data URLをBlobに変換
   const blob = dataURLToBlob(dataUrl);
   const url = URL.createObjectURL(blob);
@@ -376,8 +378,9 @@ async function downloadImage(dataUrl, filename, folderName) {
       folderName: folderName,
       saveAs: false
     });
+    console.log('[content.js] Download message sent successfully');
   } catch (error) {
-    console.error('Download failed:', error);
+    console.error('[content.js] Download failed:', error);
     throw error;
   } finally {
     // 少し待ってからURLを解放

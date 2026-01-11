@@ -73,12 +73,17 @@ async function handleCaptureScreenshot(sender, sendResponse) {
 
 async function handleDownloadFile(message, sendResponse) {
   try {
-    console.log('Downloading file:', message.filename);
+    console.log('[background.js] Downloading file:', message.filename);
+    console.log('[background.js] Folder name:', message.folderName);
+    console.log('[background.js] saveAs:', message.saveAs);
 
     // フォルダ名が指定されている場合は、ファイル名の前に追加
     let filename = message.filename;
     if (message.folderName && message.folderName.trim() !== '') {
       filename = `${message.folderName.trim()}/${message.filename}`;
+      console.log('[background.js] Full path with folder:', filename);
+    } else {
+      console.log('[background.js] No folder name specified, using filename only');
     }
 
     const downloadId = await chrome.downloads.download({
@@ -87,10 +92,10 @@ async function handleDownloadFile(message, sendResponse) {
       saveAs: message.saveAs || false
     });
 
-    console.log('Download started:', downloadId);
+    console.log('[background.js] Download started with ID:', downloadId);
     sendResponse({ success: true, downloadId: downloadId });
   } catch (error) {
-    console.error('Download failed:', error);
+    console.error('[background.js] Download failed:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
